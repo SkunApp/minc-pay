@@ -6,11 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-ZA", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
   });
 }
 
@@ -27,13 +24,13 @@ export function formatVolume(value: string) {
 
 export function formatBusinessType(value: string) {
   const map: Record<string, string> = {
-    retail: "Retail",
-    food_beverage: "Food & Beverage",
-    services: "Services",
-    automotive: "Automotive",
-    health_beauty: "Health & Beauty",
-    hospitality: "Hospitality",
-    other: "Other",
+    retail:       "Retail",
+    food_beverage:"Food & Beverage",
+    services:     "Services",
+    automotive:   "Automotive",
+    health_beauty:"Health & Beauty",
+    hospitality:  "Hospitality",
+    other:        "Other",
   };
   return map[value] ?? value;
 }

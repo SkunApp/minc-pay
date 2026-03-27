@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApplication, getApplications } from "@/lib/store";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const applications = await getApplications();
     return NextResponse.json(applications);
-  } catch {
+  } catch (err) {
+    console.error("[GET /api/applications]", err);
     return NextResponse.json({ error: "Failed to fetch applications" }, { status: 500 });
   }
 }
@@ -27,22 +30,14 @@ export async function POST(req: NextRequest) {
       phone,
       businessType,
       monthlyVolume,
-      message: message || "",
+      message: message ?? "",
     });
 
-    // TODO: Send confirmation email via Resend
-    // await resend.emails.send({
-    //   from: 'MINC Pay <no-reply@mincpay.co.za>',
-    //   to: email,
-    //   subject: 'Application Received – MINC Pay',
-    //   html: confirmationEmailTemplate(application),
-    // })
-
-    // TODO: Create record in Sanity
-    // await sanityClient.create({ _type: 'application', ...application })
+    // TODO (Phase 2): await sendConfirmationEmail(application) via Resend
 
     return NextResponse.json(application, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[POST /api/applications]", err);
     return NextResponse.json({ error: "Failed to create application" }, { status: 500 });
   }
 }
