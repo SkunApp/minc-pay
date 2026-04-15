@@ -85,7 +85,7 @@ export default function Navbar() {
               style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border-default)", color: "var(--text-secondary)" }}>
               {isLight ? <Moon size={14} /> : <Sun size={14} />}
             </button>
-            <Link href="/admin" className="text-xs tracking-widest uppercase font-mono transition-colors duration-200" style={{ color: "var(--text-muted)" }}>Admin</Link>
+            {/* <Link href="/admin" className="text-xs tracking-widest uppercase font-mono transition-colors duration-200" style={{ color: "var(--text-muted)" }}>Admin</Link> */}
             <Link href="/apply" className="btn-primary text-xs py-2.5 px-5">Apply Now</Link>
           </div>
 
