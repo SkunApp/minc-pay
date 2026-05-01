@@ -107,10 +107,7 @@ export default function ApplyPage() {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
       <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none" style={{ backgroundColor: "var(--glow-primary)" }} />
-      <div className="absolute inset-0 pointer-events-none opacity-100" style={{
-        backgroundImage: "linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)",
-        backgroundSize: "60px 60px",
-      }} />
+
 
       <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-mono tracking-wide mb-10 transition-colors hover-text-secondary"

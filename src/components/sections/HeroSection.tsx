@@ -19,11 +19,7 @@ export default function HeroSection() {
 
   return (
     <section ref={heroRef} className="relative min-h-screen flex flex-col justify-center overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
-      {/* Grid */}
-      <div className="absolute inset-0 opacity-100 pointer-events-none" style={{
-        backgroundImage: "linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)",
-        backgroundSize: "60px 60px",
-      }} />
+
       {/* Glows */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none" style={{ backgroundColor: "var(--glow-primary)" }} />
       <div className="absolute bottom-0 left-1/4 w-[400px] h-[280px] rounded-full blur-[100px] pointer-events-none" style={{ backgroundColor: "var(--bg-elevated)", opacity: 0.4 }} />
@@ -40,11 +36,12 @@ export default function HeroSection() {
           </div>
 
           {/* Headline */}
+
           <h1 className="anim font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[0.95] tracking-tight mb-6"
             style={{ opacity: 0, transform: "translateY(24px)", transition: "opacity 0.6s ease, transform 0.6s ease" }}>
-            <span style={{ color: "var(--text-primary)" }} className="block">Accept</span>
-            <span className="text-gradient block">every payment.</span>
-            <span style={{ color: "var(--text-muted)" }} className="block">Grow faster.</span>
+            <span style={{ color: "var(--text-primary)" }} className="block">Payments</span>
+            <span className="text-gradient block">that makes you</span>
+            <span style={{ color: "var(--text-muted)" }} className="block">move forward.</span>
           </h1>
 
           {/* Sub */}

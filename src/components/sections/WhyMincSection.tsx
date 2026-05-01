@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Zap, Shield, HeadphonesIcon, TrendingUp, Smartphone, Users } from "lucide-react";
 
 const reasons = [
@@ -72,8 +73,17 @@ export default function WhyMincSection() {
               <a href="/contact" className="btn-secondary whitespace-nowrap">Talk to Us</a>
             </div>
           </div>
-          <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[120px] font-display font-black select-none leading-none pointer-events-none"
-            style={{ color: "var(--text-faint)" }}>PAY</div>
+          {/* Logo watermark */}
+          <div className="absolute right-8 top-1/2 -translate-y-1/2 select-none pointer-events-none hidden md:block">
+            <Image
+              src="/minc-logo.png"
+              alt=""
+              width={280}
+              height={108}
+              className="object-contain"
+              style={{ opacity: 0.08, filter: "var(--logo-watermark-filter)" }}
+            />
+          </div>
         </div>
       </div>
     </section>

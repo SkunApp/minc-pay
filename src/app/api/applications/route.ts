@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApplication, getApplications } from "@/lib/store";
+import { getSiteSettings } from "@/sanity/siteSettings";
+import { sendNewApplicationNotification } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,14 @@ export async function POST(req: NextRequest) {
       message: message ?? "",
     });
 
-    // TODO (Phase 2): await sendConfirmationEmail(application) via Resend
+    // Send new-application notification to the support email defined in Sanity
+    try {
+      const { supportEmail } = await getSiteSettings();
+      await sendNewApplicationNotification(application, supportEmail);
+    } catch (emailErr) {
+      // Log but don't fail the request — the application is already saved
+      console.error("[POST /api/applications] Failed to send notification email:", emailErr);
+    }
 
     return NextResponse.json(application, { status: 201 });
   } catch (err) {

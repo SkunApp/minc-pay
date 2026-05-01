@@ -38,6 +38,7 @@
   --glass-border:  rgba(255,255,255,0.07);
   --nav-bg:        rgba(4,7,15,0.95);
   --glow-primary:  rgba(220,38,38,0.12);
+  --logo-watermark-filter: invert(1);
 }
 
 /* ─── Light theme ────────────────────────────────────────────────────────────── */
@@ -70,6 +71,7 @@
   --glass-border:  rgba(10,22,40,0.09);
   --nav-bg:        rgba(240,244,251,0.96);
   --glow-primary:  rgba(220,38,38,0.07);
+  --logo-watermark-filter: none;
 }
 
 /* ─── Base ──────────────────────────────────────────────────────────────────── */

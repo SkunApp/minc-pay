@@ -110,15 +110,6 @@ export default function DevicesPage() {
     <main style={{ backgroundColor: "var(--bg-base)" }}>
       {/* ── Hero ── */}
       <section className="relative pt-32 pb-20 overflow-hidden">
-        {/* Grid */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
         {/* Glow */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] pointer-events-none"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApplicationById, updateApplicationStatus } from "@/lib/store";
+import { sendStatusChangeEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,17 @@ export async function PATCH(
     if (!["pending", "approved", "rejected"].includes(status)) {
       return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
     }
+
     const updated = await updateApplicationStatus(params.id, status);
     if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // TODO (Phase 2): await sendStatusEmail(updated) via Resend
+    // Notify the applicant of their new status
+    try {
+      await sendStatusChangeEmail(updated);
+    } catch (emailErr) {
+      // Log but don't fail the request — the status is already persisted
+      console.error("[PATCH /api/applications/:id] Failed to send status email:", emailErr);
+    }
 
     return NextResponse.json(updated);
   } catch (err) {
