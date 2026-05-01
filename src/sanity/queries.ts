@@ -60,3 +60,10 @@ export const SITE_SETTINGS_QUERY = `
     legalLinks[]{ label, href }
   }
 `;
+
+export const ADMIN_USERS_QUERY = `
+  *[_type == "adminUser" && isActive == true] {
+    username,
+    passwordHash
+  }
+`;

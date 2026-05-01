@@ -6,7 +6,6 @@ export const metadata: Metadata = {
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  // TODO: Add auth guard here when integrating Sanity/Clerk
-  // e.g. redirect to /admin/login if no session
+  // Auth is handled by middleware.ts — Basic Auth on all /admin/* routes
   return <>{children}</>;
 }

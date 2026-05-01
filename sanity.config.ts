@@ -15,7 +15,7 @@ export default defineConfig({
   title: 'MINC Pay',
 
   projectId,
-  dataset:   process.env.NEXT_PUBLIC_SANITY_DATASET ?? 'production',
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET ?? 'production',
 
   plugins: [
     structureTool({
@@ -42,6 +42,15 @@ export default defineConfig({
                   .title('Messages')
                   .filter('_type == "contactMessage"')
                   .defaultOrdering([{ field: 'submittedAt', direction: 'desc' }])
+              ),
+            S.divider(),
+            S.listItem()
+              .title('Admin Users')
+              .child(
+                S.documentList()
+                  .title('Admin Users')
+                  .filter('_type == "adminUser"')
+                  .defaultOrdering([{ field: 'username', direction: 'asc' }])
               ),
           ]),
     }),
