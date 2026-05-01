@@ -25,8 +25,8 @@ function isValidToken(token: string): boolean {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Always allow the login page through
-  if (pathname === "/admin/login") return NextResponse.next();
+  // Always allow the login and signup pages through
+  if (pathname === "/admin/login" || pathname === "/admin/signup") return NextResponse.next();
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
 

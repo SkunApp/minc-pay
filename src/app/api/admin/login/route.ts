@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createClient } from "@sanity/client";
+import { createHmac } from "crypto";
 
 const SESSION_COOKIE = "minc_admin_session";
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET ?? "change-me-in-production";
 
-// ─── Simple signed token (no extra deps) ─────────────────────────────────────
-import { createHmac } from "crypto";
-
 function signToken(username: string): string {
-  const payload   = `${username}:${Date.now()}`;
-  const sig       = createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
+  const payload = `${username}:${Date.now()}`;
+  const sig     = createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
   return Buffer.from(`${payload}:${sig}`).toString("base64url");
 }
 
-// ─── Fetch admin users from Sanity ───────────────────────────────────────────
 type SanityAdminUser = { username: string; passwordHash: string };
 
 async function fetchAdminUsers(): Promise<SanityAdminUser[]> {
@@ -33,9 +30,9 @@ async function fetchAdminUsers(): Promise<SanityAdminUser[]> {
   }
 }
 
-// ─── POST /api/admin/login ────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const { username, password } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
+  const { username, password } = body;
 
   if (!username || !password) {
     return NextResponse.json({ message: "Username and password are required." }, { status: 400 });
@@ -43,7 +40,6 @@ export async function POST(req: NextRequest) {
 
   let authenticated = false;
 
-  // 1. Try Sanity users
   const sanityUsers = await fetchAdminUsers();
 
   if (sanityUsers.length > 0) {
@@ -52,7 +48,7 @@ export async function POST(req: NextRequest) {
       authenticated = await bcrypt.compare(password, match.passwordHash);
     }
   } else {
-    // 2. Fall back to env vars
+    // Fall back to env vars
     const envUser = process.env.ADMIN_USERNAME ?? "admin";
     const envPass = process.env.ADMIN_PASSWORD;
     if (envPass && username === envUser && password === envPass) {
@@ -61,16 +57,20 @@ export async function POST(req: NextRequest) {
   }
 
   if (!authenticated) {
-    // Artificial delay to slow brute-force
     await new Promise((r) => setTimeout(r, 800));
     return NextResponse.json({ message: "Invalid username or password." }, { status: 401 });
   }
 
-  // Set signed session cookie (httpOnly, secure in production)
-  const token = signToken(username);
-  const res   = NextResponse.json({ ok: true });
+  // Build the redirect destination from the request URL
+  const url    = req.nextUrl.clone();
+  const from   = url.searchParams.get("from");
+  const dest   = from && from.startsWith("/") && !from.startsWith("/admin/login") ? from : "/admin";
 
-  res.cookies.set(SESSION_COOKIE, token, {
+  // Respond with a redirect — cookie and navigation in one response so the
+  // browser never makes a second cookieless request to /admin.
+  const res = NextResponse.redirect(new URL(dest, req.url), { status: 303 });
+
+  res.cookies.set(SESSION_COOKIE, signToken(username), {
     httpOnly: true,
     secure:   process.env.NODE_ENV === "production",
     sameSite: "lax",
