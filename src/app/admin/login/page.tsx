@@ -14,7 +14,11 @@ function LoginForm() {
   const [error, setError]       = useState("");
   const [mounted, setMounted]   = useState(false);
 
-  const from = searchParams.get("from") ?? "";
+  // Grab ?from= but never redirect back to the login page itself
+  const rawFrom    = searchParams.get("from") ?? "";
+  const redirectTo = rawFrom.startsWith("/") && !rawFrom.startsWith("/admin/login")
+    ? rawFrom
+    : "/admin";
 
   useEffect(() => { setTimeout(() => setMounted(true), 50); }, []);
 
@@ -24,27 +28,22 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // Build the API URL, forwarding the ?from= param so the server-side
-      // redirect lands on the right page after setting the cookie.
-      const apiUrl = from ? `/api/admin/login?from=${encodeURIComponent(from)}` : "/api/admin/login";
-
-      const res = await fetch(apiUrl, {
-        method:      "POST",
-        headers:     { "Content-Type": "application/json" },
-        body:        JSON.stringify({ username, password }),
-        redirect:    "follow",   // follow the 303 the server sends on success
+      const res = await fetch("/api/admin/login", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        // Send redirectTo in the body — avoids any URL/query-param parsing issues
+        body: JSON.stringify({ username, password, redirectTo }),
       });
 
-      // The server redirects to /admin on success. If fetch followed it and
-      // ended up at the admin page (or any non-login page) we do a hard nav
-      // to ensure the browser URL bar updates correctly.
-      if (res.ok && !res.url.includes("/admin/login")) {
-        window.location.href = res.url;
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.ok) {
+        // Cookie is now set on this response. Navigate at the page level so the
+        // browser sends it with the very next request to /admin.
+        window.location.assign(data.redirectTo ?? "/admin");
         return;
       }
 
-      // If we're still here the login failed — parse the error.
-      const data = await res.json().catch(() => ({}));
       setError(data.message ?? "Invalid username or password.");
     } catch {
       setError("Something went wrong. Please try again.");
