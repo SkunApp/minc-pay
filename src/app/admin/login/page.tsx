@@ -146,14 +146,14 @@ function LoginForm() {
             </button>
           </form>
 
-          <p className="text-center text-xs mt-6" style={{ color: "var(--text-muted)" }}>
+          {/* <p className="text-center text-xs mt-6" style={{ color: "var(--text-muted)" }}>
             Need an account?{" "}
             <a href="/admin/signup" style={{ color: "var(--crimson-400)" }}
                onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "var(--crimson-500)")}
                onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--crimson-400)")}>
               Create admin account
             </a>
-          </p>
+          </p> */}
         </div>
 
         <p className="text-center text-xs font-mono mt-6" style={{ color: "var(--text-faint)" }}>
