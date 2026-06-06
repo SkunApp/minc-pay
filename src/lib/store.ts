@@ -9,7 +9,7 @@ import {
   APPLICATION_BY_ID_QUERY,
   ALL_CONTACT_MESSAGES_QUERY,
 } from "@/sanity/queries";
-import { Application, ContactMessage } from "@/types";
+import { Application, ContactMessage, ApplicationDocument } from "@/types";
 
 // ─── Applications ─────────────────────────────────────────────────────────────
 
@@ -22,7 +22,11 @@ export async function getApplicationById(id: string): Promise<Application | null
 }
 
 export async function createApplication(
-  data: Omit<Application, "id" | "status" | "submittedAt">
+  data: Omit<Application, "id" | "status" | "submittedAt"> & {
+    companyRegistrationDoc?: ApplicationDocument;
+    directorIdDoc?: ApplicationDocument;
+    proofOfBankDoc?: ApplicationDocument;
+  }
 ): Promise<Application> {
   const doc = await sanityClient.create({
     _type: "application",
@@ -32,17 +36,21 @@ export async function createApplication(
   });
 
   return {
-    id: doc._id,
-    businessName:   doc.businessName,
-    ownerFirstName: doc.ownerFirstName,
-    ownerLastName:  doc.ownerLastName,
-    email:          doc.email,
-    phone:          doc.phone,
-    businessType:   doc.businessType,
-    monthlyVolume:  doc.monthlyVolume,
-    message:        doc.message ?? "",
-    status:         "pending",
-    submittedAt:    doc.submittedAt,
+    id:                     doc._id,
+    businessName:           doc.businessName,
+    ownerFirstName:         doc.ownerFirstName,
+    ownerLastName:          doc.ownerLastName,
+    email:                  doc.email,
+    phone:                  doc.phone,
+    businessType:           doc.businessType,
+    monthlyVolume:          doc.monthlyVolume,
+    message:                doc.message ?? "",
+    status:                 "pending",
+    submittedAt:            doc.submittedAt,
+    applicantType:          doc.applicantType ?? "individual",
+    companyRegistrationDoc: doc.companyRegistrationDoc,
+    directorIdDoc:          doc.directorIdDoc,
+    proofOfBankDoc:         doc.proofOfBankDoc,
   };
 }
 
@@ -51,7 +59,12 @@ export async function updateApplicationStatus(
   status: Application["status"]
 ): Promise<Application | null> {
   await sanityClient.patch(id).set({ status }).commit();
-  return sanityReadClient.fetch(APPLICATION_BY_ID_QUERY, { id });
+  // Use the write client (no CDN) to avoid replication lag / timeout
+  return sanityClient.fetch(APPLICATION_BY_ID_QUERY, { id });
+}
+
+export async function deleteApplication(id: string): Promise<void> {
+  await sanityClient.delete(id);
 }
 
 // ─── Contact messages ─────────────────────────────────────────────────────────

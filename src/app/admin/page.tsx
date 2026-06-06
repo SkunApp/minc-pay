@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   CheckCircle2, XCircle, Clock, Search, RefreshCw,
   Users, AlertCircle, LogOut, ChevronRight, X, Building2,
+  Trash2, FileText, ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
 import { Application } from "@/types";
@@ -51,7 +52,7 @@ function StatCard({ label, value, Icon, color, total }: {
           <Icon size={14} style={{ color, display: "block" }} />
         </div>
         {pct !== null && (
-          <span style={{ fontSize: "0.62rem", fontFamily: "var(--font-mono)", color: "var(--text-faint)",
+          <span style={{ fontSize: "0.62rem", fontFamily: "var(--font-mono)", color: "var(--text-secondary)",
                          background: "var(--bg-elevated)", padding: "2px 7px", borderRadius: 2,
                          border: "1px solid var(--border-subtle)" }}>
             {pct}%
@@ -70,17 +71,21 @@ function StatCard({ label, value, Icon, color, total }: {
 }
 
 // ── Detail panel ─────────────────────────────────────────────────────────────
-function DetailPanel({ app, onClose, onUpdate, updating }: {
+function DetailPanel({ app, onClose, onUpdate, onDelete, updating, deleting }: {
   app: Application;
   onClose: () => void;
   onUpdate: (id: string, status: Application["status"]) => void;
+  onDelete: (id: string) => void;
   updating: string | null;
+  deleting: string | null;
 }) {
   const s = STATUS[app.status];
-  const busy = updating === app.id;
+  const busy = updating === app.id || deleting === app.id;
+  const isCompany = app.applicantType === "company";
 
   const fields = [
     { label: "Application ID", value: app.id,          mono: true },
+    { label: "Applicant Type", value: isCompany ? "Company" : "Individual" },
     { label: "Business Name",  value: app.businessName },
     { label: "Owner",          value: `${app.ownerFirstName} ${app.ownerLastName}` },
     { label: "Email",          value: app.email },
@@ -90,105 +95,145 @@ function DetailPanel({ app, onClose, onUpdate, updating }: {
     { label: "Submitted",      value: formatDate(app.submittedAt) },
   ];
 
-  const actionBtn = (
-    onClick: () => void,
-    label: string,
-    bg: string,
-    border: string,
-    color: string,
-  ) => (
-    <button onClick={onClick} disabled={busy} style={{
-      width: "100%", padding: "10px 0", fontSize: "0.72rem", fontFamily: "var(--font-mono)",
-      letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: 3, cursor: busy ? "not-allowed" : "pointer",
-      background: bg, border: `1px solid ${border}`, color, opacity: busy ? 0.45 : 1,
-      transition: "opacity 0.2s",
-    }}>
-      {label}
-    </button>
-  );
+  const docLink = (label: string, doc?: { url: string; originalName: string }) => {
+    if (!doc) return null;
+    return (
+      <a
+        href={doc.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+          borderRadius: 3, border: "1px solid var(--border-subtle)", background: "var(--bg-elevated)",
+          textDecoration: "none", transition: "border-color 0.2s",
+        }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--border-subtle)")}
+      >
+        <FileText size={12} style={{ color: "var(--crimson-400)", flexShrink: 0 }} />
+        <span style={{ fontSize: "0.72rem", color: "var(--text-primary)", flex: 1,
+                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {label}
+        </span>
+        <ExternalLink size={10} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+      </a>
+    );
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ padding: "20px 24px 24px" }}>
 
-      {/* Header */}
-      <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border-subtle)", flexShrink: 0,
-                    display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ minWidth: 0 }}>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flexWrap: "wrap" }}>
           <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", letterSpacing: "0.18em",
-                      textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 4 }}>
+                      textTransform: "uppercase", color: "var(--text-muted)", flexShrink: 0 }}>
             Application Detail
           </p>
-          <h3 className="font-display" style={{ fontSize: "1rem", fontWeight: 800, color: "var(--text-primary)",
-                                                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ width: 1, height: 14, background: "var(--border-strong)", flexShrink: 0 }} />
+          <h3 className="font-display" style={{ fontSize: "1rem", fontWeight: 800, color: "var(--text-primary)", flexShrink: 0 }}>
             {app.businessName}
           </h3>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px",
+                         borderRadius: 2, border: `1px solid ${s.border}`, background: s.bg,
+                         fontSize: "0.62rem", fontFamily: "var(--font-mono)", letterSpacing: "0.1em",
+                         textTransform: "uppercase", color: s.color, flexShrink: 0 }}>
+            <s.Icon size={10} />{s.label}
+          </span>
         </div>
         <button onClick={onClose} style={{ padding: 6, borderRadius: 4, border: "1px solid var(--border-default)",
-                                            background: "transparent", cursor: "pointer", color: "var(--text-muted)",
+                                            background: "transparent", cursor: "pointer", color: "var(--text-secondary)",
                                             display: "flex", alignItems: "center", flexShrink: 0 }}>
           <X size={13} />
         </button>
       </div>
 
-      {/* Status */}
-      <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border-subtle)", flexShrink: 0 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px",
-                       borderRadius: 2, border: `1px solid ${s.border}`, background: s.bg,
-                       fontSize: "0.68rem", fontFamily: "var(--font-mono)", letterSpacing: "0.1em",
-                       textTransform: "uppercase", color: s.color }}>
-          <s.Icon size={10} />{s.label}
-        </span>
+      {/* Fields grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "14px 24px", marginBottom: 20 }}>
+        {fields.map(({ label, value, mono }) => (
+          <div key={label}>
+            <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
+                        textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 3 }}>
+              {label}
+            </p>
+            <p style={{ fontSize: "0.83rem", color: "var(--text-primary)", wordBreak: "break-all",
+                        fontFamily: mono ? "var(--font-mono)" : undefined, lineHeight: 1.4 }}>
+              {value}
+            </p>
+          </div>
+        ))}
+        {app.message && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
+                        textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 3 }}>
+              Notes
+            </p>
+            <p style={{ fontSize: "0.83rem", color: "var(--text-primary)", lineHeight: 1.6 }}>
+              {app.message}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Fields */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {fields.map(({ label, value, mono }) => (
-            <div key={label}>
-              <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
-                          textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 3 }}>
-                {label}
-              </p>
-              <p style={{ fontSize: "0.83rem", color: "var(--text-secondary)", wordBreak: "break-all",
-                          fontFamily: mono ? "var(--font-mono)" : undefined, lineHeight: 1.4 }}>
-                {value}
-              </p>
-            </div>
-          ))}
-          {app.message && (
-            <div>
-              <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
-                          textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 3 }}>
-                Notes
-              </p>
-              <p style={{ fontSize: "0.83rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                {app.message}
-              </p>
-            </div>
-          )}
+      {/* Documents */}
+      {isCompany && (app.companyRegistrationDoc || app.directorIdDoc || app.proofOfBankDoc) && (
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
+                      textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>
+            Company Documents
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {docLink("Company Registration", app.companyRegistrationDoc)}
+            {docLink("Director ID", app.directorIdDoc)}
+            {docLink("Proof of Bank Account", app.proofOfBankDoc)}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Actions */}
-      <div style={{ padding: "16px 20px", borderTop: "1px solid var(--border-subtle)",
-                    display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-        {app.status !== "approved" &&
-          actionBtn(() => onUpdate(app.id, "approved"), "✓ Approve Application",
-            "rgba(52,211,153,0.10)", "rgba(52,211,153,0.30)", "#34d399")}
-        {app.status !== "rejected" &&
-          actionBtn(() => onUpdate(app.id, "rejected"), "✕ Reject Application",
-            "rgba(248,113,113,0.10)", "rgba(248,113,113,0.30)", "#f87171")}
-        {app.status !== "pending" &&
-          actionBtn(() => onUpdate(app.id, "pending"), "↺ Reset to Pending",
-            "rgba(245,158,11,0.10)", "rgba(245,158,11,0.30)", "#f59e0b")}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, borderTop: "1px solid var(--border-subtle)", paddingTop: 16 }}>
+        {app.status !== "approved" && (
+          <button onClick={() => onUpdate(app.id, "approved")} disabled={busy} style={{
+            padding: "8px 18px", fontSize: "0.72rem", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: 3, cursor: busy ? "not-allowed" : "pointer",
+            background: "rgba(52,211,153,0.10)", border: "1px solid rgba(52,211,153,0.30)", color: "#34d399",
+            opacity: busy ? 0.45 : 1, transition: "opacity 0.2s",
+          }}>✓ Approve</button>
+        )}
+        {app.status !== "rejected" && (
+          <button onClick={() => onUpdate(app.id, "rejected")} disabled={busy} style={{
+            padding: "8px 18px", fontSize: "0.72rem", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: 3, cursor: busy ? "not-allowed" : "pointer",
+            background: "rgba(248,113,113,0.10)", border: "1px solid rgba(248,113,113,0.30)", color: "#f87171",
+            opacity: busy ? 0.45 : 1, transition: "opacity 0.2s",
+          }}>✕ Reject</button>
+        )}
+        {app.status !== "pending" && (
+          <button onClick={() => onUpdate(app.id, "pending")} disabled={busy} style={{
+            padding: "8px 18px", fontSize: "0.72rem", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: 3, cursor: busy ? "not-allowed" : "pointer",
+            background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.30)", color: "#f59e0b",
+            opacity: busy ? 0.45 : 1, transition: "opacity 0.2s",
+          }}>↺ Reset to Pending</button>
+        )}
         <a href={`mailto:${app.email}`} style={{
-          display: "block", textAlign: "center", padding: "10px 0", fontSize: "0.72rem",
+          display: "inline-flex", alignItems: "center", padding: "8px 18px", fontSize: "0.72rem",
           fontFamily: "var(--font-mono)", letterSpacing: "0.1em", textTransform: "uppercase",
           borderRadius: 3, background: "var(--bg-elevated)", border: "1px solid var(--border-default)",
           color: "var(--text-secondary)", textDecoration: "none",
-        }}>
-          ✉ Email Applicant
-        </a>
+        }}>✉ Email Applicant</a>
+        <button
+          onClick={() => { if (confirm(`Delete application for "${app.businessName}"? This cannot be undone.`)) { onDelete(app.id); } }}
+          disabled={busy}
+          style={{
+            padding: "8px 18px", fontSize: "0.72rem", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: 3,
+            cursor: busy ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+            background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.20)",
+            color: "var(--crimson-400)", opacity: busy ? 0.45 : 1, transition: "opacity 0.2s",
+          }}>
+          <Trash2 size={12} /> Delete
+        </button>
       </div>
     </div>
   );
@@ -202,6 +247,7 @@ export default function AdminPage() {
   const [statusFilter, setFilter] = useState<StatusFilter>("all");
   const [sortField, setSort]      = useState<SortField>("submittedAt");
   const [updating, setUpdating]   = useState<string | null>(null);
+  const [deleting, setDeleting]   = useState<string | null>(null);
   const [selected, setSelected]   = useState<Application | null>(null);
   const [user, setUser]           = useState<AdminUser>({ displayName: "Admin", username: "admin" });
   const [menuOpen, setMenuOpen]   = useState(false);
@@ -233,6 +279,17 @@ export default function AdminPage() {
         if (selected?.id === id) setSelected(updated);
       }
     } finally { setUpdating(null); }
+  };
+
+  const deleteApp = async (id: string) => {
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/applications/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setApplications((prev) => prev.filter((a) => a.id !== id));
+        if (selected?.id === id) setSelected(null);
+      }
+    } finally { setDeleting(null); }
   };
 
   const handleLogout = async () => {
@@ -288,7 +345,7 @@ export default function AdminPage() {
                    style={{ filter: "var(--logo-watermark-filter) brightness(0) invert(0)" }} />
             <div style={{ width: 1, height: 18, background: "var(--border-strong)" }} />
             <span style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", letterSpacing: "0.22em",
-                           textTransform: "uppercase", color: "var(--text-faint)" }}>
+                           textTransform: "uppercase", color: "var(--text-muted)" }}>
               Admin Portal
             </span>
           </div>
@@ -303,12 +360,11 @@ export default function AdminPage() {
               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)")}
               onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)")}>
               <Avatar name={user.displayName} size={28} />
-              {/* Hide text on very small screens */}
               <div className="hidden sm:block" style={{ textAlign: "left" }}>
                 <p style={{ fontSize: "0.76rem", fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2 }}>
                   {user.displayName}
                 </p>
-                <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", color: "var(--text-faint)", lineHeight: 1 }}>
+                <p style={{ fontSize: "0.6rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)", lineHeight: 1 }}>
                   @{user.username}
                 </p>
               </div>
@@ -320,23 +376,17 @@ export default function AdminPage() {
                      style={{ position: "fixed", inset: 0, zIndex: 10 }} />
                 <div style={{
                   position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 20,
-                  width: 200, background: "var(--bg-elevated)", border: "1px solid var(--border-default)",
-                  borderRadius: 6, overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+                  background: "var(--bg-surface)", border: "1px solid var(--border-default)",
+                  borderRadius: 6, overflow: "hidden", minWidth: 160,
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
                 }}>
-                  <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border-subtle)" }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-primary)" }}>
-                      {user.displayName}
-                    </p>
-                    <p style={{ fontSize: "0.65rem", fontFamily: "var(--font-mono)", color: "var(--text-faint)", marginTop: 2 }}>
-                      @{user.username}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    style={{ width: "100%", padding: "11px 16px", display: "flex", alignItems: "center", gap: 8,
-                             background: "transparent", border: "none", cursor: "pointer", color: "#f87171",
-                             fontSize: "0.78rem", fontFamily: "var(--font-mono)", textAlign: "left", transition: "background 0.15s" }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(248,113,113,0.08)")}
+                  <button onClick={handleLogout} style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 9,
+                    padding: "11px 14px", background: "transparent", border: "none",
+                    cursor: "pointer", fontSize: "0.78rem", color: "var(--text-secondary)",
+                    transition: "background 0.15s",
+                  }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)")}
                     onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}>
                     <LogOut size={13} /> Sign out
                   </button>
@@ -348,38 +398,17 @@ export default function AdminPage() {
       </header>
 
       {/* ── Main content ────────────────────────────────────────────────── */}
-      <main style={{ flex: 1, maxWidth: 1280, margin: "0 auto", width: "100%",
-                     padding: "clamp(20px, 4vw, 40px) 20px", boxSizing: "border-box" }}>
+      <main style={{ flex: 1, maxWidth: 1280, margin: "0 auto", width: "100%", padding: "32px 20px 60px" }}>
 
-        {/* Greeting row */}
+        {/* Greeting */}
         <div style={{ marginBottom: 28 }}>
-          <p style={{ fontSize: "0.62rem", fontFamily: "var(--font-mono)", letterSpacing: "0.2em",
-                      textTransform: "uppercase", color: "var(--crimson-500)", marginBottom: 6 }}>
-            {new Date().toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          </p>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between",
-                        flexWrap: "wrap", gap: 12 }}>
-            <h1 className="font-display"
-                style={{ fontSize: "clamp(1.4rem, 3.5vw, 2.1rem)", fontWeight: 900,
-                         color: "var(--text-primary)", lineHeight: 1.1, margin: 0 }}>
-              {greeting}, {firstName}.
-            </h1>
-            <button
-              onClick={fetchApplications}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
-                       borderRadius: 4, border: "1px solid var(--border-default)", background: "transparent",
-                       cursor: "pointer", color: "var(--text-muted)", fontSize: "0.72rem",
-                       fontFamily: "var(--font-mono)", letterSpacing: "0.08em", transition: "all 0.2s" }}
-              onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--text-primary)"; el.style.borderColor = "var(--border-strong)"; }}
-              onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.color = "var(--text-muted)"; el.style.borderColor = "var(--border-default)"; }}>
-              <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </button>
-          </div>
-          <p style={{ marginTop: 8, fontSize: "0.85rem", color: "var(--text-muted)" }}>
-            {loading ? "Loading applications…" : counts.pending > 0
-              ? <>{`You have `}<span style={{ color: "#f59e0b", fontWeight: 600 }}>{counts.pending} pending application{counts.pending !== 1 ? "s" : ""}</span>{` awaiting review.`}</>
-              : "All caught up — no applications pending review."}
+          <h1 className="font-display" style={{ fontSize: "1.6rem", fontWeight: 900, color: "var(--text-primary)", marginBottom: 4 }}>
+            {greeting}, {firstName}.
+          </h1>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+            {counts.pending > 0
+              ? `You have ${counts.pending} pending application${counts.pending !== 1 ? "s" : ""} to review.`
+              : "All applications have been reviewed."}
           </p>
         </div>
 
@@ -392,11 +421,8 @@ export default function AdminPage() {
           <StatCard label="Rejected" value={counts.rejected} Icon={XCircle}      color="#f87171" total={counts.all} />
         </div>
 
-        {/* Table + detail panel */}
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-
-          {/* ── Table ─────────────────────────────────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Table */}
+        <div style={{ width: "100%" }}>
 
             {/* Filter bar */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
@@ -441,6 +467,15 @@ export default function AdminPage() {
                 <option value="businessName">Name A–Z</option>
                 <option value="status">Status</option>
               </select>
+
+              {/* Refresh */}
+              <button onClick={fetchApplications} disabled={loading} style={{
+                padding: "7px 11px", background: "transparent", border: "1px solid var(--border-default)",
+                borderRadius: 4, cursor: loading ? "not-allowed" : "pointer", color: "var(--text-muted)",
+                display: "flex", alignItems: "center", opacity: loading ? 0.5 : 1,
+              }}>
+                <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+              </button>
             </div>
 
             {/* Table card */}
@@ -449,7 +484,7 @@ export default function AdminPage() {
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
                               justifyContent: "center", padding: "60px 20px", gap: 12 }}>
                   <RefreshCw size={20} className="animate-spin" style={{ color: "var(--text-muted)" }} />
-                  <p style={{ fontSize: "0.72rem", fontFamily: "var(--font-mono)", color: "var(--text-faint)" }}>
+                  <p style={{ fontSize: "0.72rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
                     Loading applications…
                   </p>
                 </div>
@@ -466,10 +501,10 @@ export default function AdminPage() {
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                        {["Business", "Owner", "Type", "Volume", "Status", "Date", "Actions"].map((h) => (
+                        {["Business", "Type", "Owner", "Volume", "Status", "Date", "Actions"].map((h) => (
                           <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "0.6rem",
                                               fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
-                                              textTransform: "uppercase", color: "var(--text-faint)",
+                                              textTransform: "uppercase", color: "var(--text-secondary)",
                                               whiteSpace: "nowrap", fontWeight: 500 }}>
                             {h}
                           </th>
@@ -480,15 +515,17 @@ export default function AdminPage() {
                       {filtered.map((app) => {
                         const s        = STATUS[app.status];
                         const isActive = selected?.id === app.id;
+                        const isBusy   = deleting === app.id || updating === app.id;
                         return (
+                          <>
                           <tr
                             key={app.id}
                             onClick={() => setSelected(isActive ? null : app)}
-                            style={{ borderBottom: "1px solid var(--border-subtle)", cursor: "pointer",
-                                     background: isActive ? "rgba(220,38,38,0.05)" : "transparent",
-                                     transition: "background 0.15s" }}
+                            style={{ borderBottom: isActive ? "none" : "1px solid var(--border-subtle)", cursor: "pointer",
+                                     background: isActive ? "rgba(220,38,38,0.06)" : "transparent",
+                                     transition: "background 0.15s", opacity: isBusy ? 0.5 : 1 }}
                             onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = isActive ? "rgba(220,38,38,0.05)" : "transparent"; }}>
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = isActive ? "rgba(220,38,38,0.06)" : "transparent"; }}>
 
                             {/* Business */}
                             <td style={{ padding: "12px 16px" }}>
@@ -496,17 +533,31 @@ export default function AdminPage() {
                                 <div style={{ width: 28, height: 28, borderRadius: 4, flexShrink: 0,
                                               background: "var(--bg-elevated)", border: "1px solid var(--border-subtle)",
                                               display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                  <Building2 size={12} style={{ color: "var(--text-faint)" }} />
+                                  <Building2 size={12} style={{ color: "var(--text-muted)" }} />
                                 </div>
                                 <div>
                                   <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
                                     {app.businessName}
                                   </p>
-                                  <p style={{ fontSize: "0.62rem", fontFamily: "var(--font-mono)", color: "var(--text-faint)", marginTop: 1 }}>
+                                  <p style={{ fontSize: "0.62rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)", marginTop: 1 }}>
                                     {app.id.slice(0, 8)}…
                                   </p>
                                 </div>
                               </div>
+                            </td>
+
+                            {/* Applicant type */}
+                            <td style={{ padding: "12px 16px" }}>
+                              <span style={{
+                                fontSize: "0.62rem", fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
+                                textTransform: "uppercase", padding: "3px 7px", borderRadius: 2,
+                                background: app.applicantType === "company" ? "rgba(139,92,246,0.10)" : "rgba(148,163,184,0.10)",
+                                border: `1px solid ${app.applicantType === "company" ? "rgba(139,92,246,0.25)" : "rgba(148,163,184,0.20)"}`,
+                                color: app.applicantType === "company" ? "#a78bfa" : "var(--text-muted)",
+                                whiteSpace: "nowrap",
+                              }}>
+                                {app.applicantType === "company" ? "🏢 Co." : "👤 Ind."}
+                              </span>
                             </td>
 
                             {/* Owner */}
@@ -517,20 +568,15 @@ export default function AdminPage() {
                                   <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                                     {app.ownerFirstName} {app.ownerLastName}
                                   </p>
-                                  <p style={{ fontSize: "0.65rem", color: "var(--text-faint)", marginTop: 1, whiteSpace: "nowrap" }}>
+                                  <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: 1, whiteSpace: "nowrap" }}>
                                     {app.email}
                                   </p>
                                 </div>
                               </div>
                             </td>
 
-                            {/* Type */}
-                            <td style={{ padding: "12px 16px", fontSize: "0.75rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                              {formatBusinessType(app.businessType)}
-                            </td>
-
                             {/* Volume */}
-                            <td style={{ padding: "12px 16px", fontSize: "0.72rem", color: "var(--text-muted)",
+                            <td style={{ padding: "12px 16px", fontSize: "0.72rem", color: "var(--text-secondary)",
                                          whiteSpace: "nowrap", fontFamily: "var(--font-mono)" }}>
                               {formatVolume(app.monthlyVolume)}
                             </td>
@@ -547,7 +593,7 @@ export default function AdminPage() {
                             </td>
 
                             {/* Date */}
-                            <td style={{ padding: "12px 16px", fontSize: "0.68rem", color: "var(--text-faint)",
+                            <td style={{ padding: "12px 16px", fontSize: "0.68rem", color: "var(--text-secondary)",
                                          whiteSpace: "nowrap", fontFamily: "var(--font-mono)" }}>
                               {formatDate(app.submittedAt)}
                             </td>
@@ -582,6 +628,21 @@ export default function AdminPage() {
                                     Reset
                                   </button>
                                 )}
+                                {/* Delete */}
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Delete "${app.businessName}"? This cannot be undone.`)) {
+                                      deleteApp(app.id);
+                                    }
+                                  }}
+                                  disabled={deleting === app.id}
+                                  title="Delete application"
+                                  style={{ padding: "4px 7px", borderRadius: 2, cursor: "pointer",
+                                           background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.20)",
+                                           color: "var(--crimson-400)", display: "flex", alignItems: "center",
+                                           opacity: deleting === app.id ? 0.4 : 1 }}>
+                                  <Trash2 size={11} />
+                                </button>
                                 <button
                                   onClick={() => setSelected(isActive ? null : app)}
                                   style={{ padding: "4px 7px", borderRadius: 2, cursor: "pointer",
@@ -596,6 +657,23 @@ export default function AdminPage() {
                               </div>
                             </td>
                           </tr>
+                          {isActive && (
+                            <tr key={`${app.id}-detail`} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                              <td colSpan={7} style={{ padding: 0, background: "rgba(220,38,38,0.03)" }}>
+                                <div style={{ borderTop: "1px solid rgba(220,38,38,0.15)" }}>
+                                  <DetailPanel
+                                    app={selected!}
+                                    onClose={() => setSelected(null)}
+                                    onUpdate={updateStatus}
+                                    onDelete={deleteApp}
+                                    updating={updating}
+                                    deleting={deleting}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          </>
                         );
                       })}
                     </tbody>
@@ -605,30 +683,10 @@ export default function AdminPage() {
             </div>
 
             {/* Row count */}
-            <p style={{ marginTop: 8, fontSize: "0.65rem", fontFamily: "var(--font-mono)", color: "var(--text-faint)" }}>
+            <p style={{ marginTop: 8, fontSize: "0.65rem", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
               Showing {filtered.length} of {applications.length} application{applications.length !== 1 ? "s" : ""}
             </p>
           </div>
-
-          {/* ── Detail panel (sticky sidebar) ─────────────────────────── */}
-          {selected && (
-            <div
-              className="glass-card"
-              style={{
-                width: 320, flexShrink: 0, borderRadius: 4, overflow: "hidden",
-                position: "sticky", top: 72,
-                maxHeight: "calc(100vh - 88px)",
-                display: "flex", flexDirection: "column",
-              }}>
-              <DetailPanel
-                app={selected}
-                onClose={() => setSelected(null)}
-                onUpdate={updateStatus}
-                updating={updating}
-              />
-            </div>
-          )}
-        </div>
 
       </main>
     </div>

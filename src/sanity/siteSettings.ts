@@ -4,7 +4,7 @@ import type { SiteSettings } from "@/types";
 
 const FALLBACK_SETTINGS: SiteSettings = {
   brandName: "MINC Pay",
-  supportEmail: "hello@mincpay.co.za",
+  supportEmail: "talifhani@skun.co.za",
   supportPhoneDisplay: "+27 (0) 00 000 0000",
   supportPhoneE164: "+27000000000",
   whatsAppNumberE164: "+27000000000",

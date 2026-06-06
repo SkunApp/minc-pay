@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getApplicationById, updateApplicationStatus } from "@/lib/store";
+import { getApplicationById, updateApplicationStatus, deleteApplication } from "@/lib/store";
 import { sendStatusChangeEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -31,11 +31,9 @@ export async function PATCH(
     const updated = await updateApplicationStatus(params.id, status);
     if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Notify the applicant of their new status
     try {
       await sendStatusChangeEmail(updated);
     } catch (emailErr) {
-      // Log but don't fail the request — the status is already persisted
       console.error("[PATCH /api/applications/:id] Failed to send status email:", emailErr);
     }
 
@@ -43,5 +41,21 @@ export async function PATCH(
   } catch (err) {
     console.error("[PATCH /api/applications/:id]", err);
     return NextResponse.json({ error: "Failed to update application" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const app = await getApplicationById(params.id);
+    if (!app) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    await deleteApplication(params.id);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[DELETE /api/applications/:id]", err);
+    return NextResponse.json({ error: "Failed to delete application" }, { status: 500 });
   }
 }

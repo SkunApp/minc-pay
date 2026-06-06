@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, CheckCircle2, Loader2, ChevronLeft } from "lucide-react";
+import { useState, useRef } from "react";
+import { ArrowRight, CheckCircle2, Loader2, ChevronLeft, Upload, X, FileText } from "lucide-react";
 import Link from "next/link";
 
 const businessTypes = [
@@ -23,20 +23,128 @@ const volumeOptions = [
 ];
 
 interface FormData {
-  businessName: string; ownerFirstName: string; ownerLastName: string;
-  email: string; phone: string; businessType: string; monthlyVolume: string; message: string;
+  businessName: string;
+  ownerFirstName: string;
+  ownerLastName: string;
+  email: string;
+  phone: string;
+  businessType: string;
+  monthlyVolume: string;
+  message: string;
+  applicantType: "individual" | "company";
 }
-const initial: FormData = { businessName: "", ownerFirstName: "", ownerLastName: "", email: "", phone: "", businessType: "", monthlyVolume: "", message: "" };
+
+const initial: FormData = {
+  businessName: "", ownerFirstName: "", ownerLastName: "",
+  email: "", phone: "", businessType: "", monthlyVolume: "", message: "",
+  applicantType: "individual",
+};
+
+// ── File upload field component ───────────────────────────────────────────────
+function FileField({
+  label,
+  hint,
+  file,
+  onChange,
+  error,
+  accept = ".pdf,.jpg,.jpeg,.png",
+}: {
+  label: string;
+  hint?: string;
+  file: File | null;
+  onChange: (f: File | null) => void;
+  error?: string;
+  accept?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div>
+      <label className="block text-xs font-mono tracking-wide uppercase mb-2" style={{ color: "var(--text-secondary)" }}>
+        {label} *
+      </label>
+      {hint && (
+        <p className="text-xs mb-2" style={{ color: "var(--text-faint)" }}>{hint}</p>
+      )}
+
+      {file ? (
+        <div
+          className="flex items-center gap-3 rounded-sm px-4 py-3"
+          style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.25)" }}
+        >
+          <FileText size={14} style={{ color: "#34d399", flexShrink: 0 }} />
+          <span className="text-sm flex-1 truncate" style={{ color: "var(--text-secondary)" }}>
+            {file.name}
+          </span>
+          <span className="text-xs font-mono" style={{ color: "var(--text-faint)", flexShrink: 0 }}>
+            {(file.size / 1024).toFixed(0)} KB
+          </span>
+          <button
+            type="button"
+            onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ""; }}
+            className="flex items-center justify-center rounded"
+            style={{ color: "var(--text-muted)", padding: 2 }}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="w-full flex flex-col items-center justify-center gap-2 rounded-sm py-6 transition-colors"
+          style={{
+            border: `1.5px dashed ${error ? "rgba(220,38,38,0.5)" : "var(--border-default)"}`,
+            background: "var(--bg-elevated)",
+            cursor: "pointer",
+          }}
+        >
+          <Upload size={18} style={{ color: "var(--text-muted)" }} />
+          <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+            Click to upload
+          </span>
+          <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+            PDF, JPG or PNG · max 10 MB
+          </span>
+        </button>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0] ?? null;
+          if (f && f.size > 10 * 1024 * 1024) {
+            alert("File must be under 10 MB");
+            return;
+          }
+          onChange(f);
+        }}
+      />
+
+      {error && <p className="text-xs mt-1.5" style={{ color: "var(--crimson-400)" }}>{error}</p>}
+    </div>
+  );
+}
 
 export default function ApplyPage() {
-  const [form, setForm]         = useState<FormData>(initial);
-  const [errors, setErrors]     = useState<Partial<FormData>>({});
-  const [loading, setLoading]   = useState(false);
-  const [success, setSuccess]   = useState(false);
-  const [apiError, setApiError] = useState("");
+  const [form, setForm]           = useState<FormData>(initial);
+  const [errors, setErrors]       = useState<Partial<Record<keyof FormData | "companyRegistrationDoc" | "directorIdDoc" | "proofOfBankDoc", string>>>({});
+  const [loading, setLoading]     = useState(false);
+  const [success, setSuccess]     = useState(false);
+  const [apiError, setApiError]   = useState("");
+
+  // Company documents
+  const [companyRegDoc, setCompanyRegDoc]   = useState<File | null>(null);
+  const [directorIdDoc, setDirectorIdDoc]   = useState<File | null>(null);
+  const [proofOfBankDoc, setProofOfBankDoc] = useState<File | null>(null);
+
+  const isCompany = form.applicantType === "company";
 
   const validate = () => {
-    const e: Partial<FormData> = {};
+    const e: typeof errors = {};
     if (!form.businessName.trim())   e.businessName   = "Business name is required";
     if (!form.ownerFirstName.trim()) e.ownerFirstName = "First name is required";
     if (!form.ownerLastName.trim())  e.ownerLastName  = "Last name is required";
@@ -44,6 +152,13 @@ export default function ApplyPage() {
     if (!form.phone.trim())          e.phone          = "Phone number is required";
     if (!form.businessType)          e.businessType   = "Please select a business type";
     if (!form.monthlyVolume)         e.monthlyVolume  = "Please select a transaction volume";
+
+    if (isCompany) {
+      if (!companyRegDoc)  e.companyRegistrationDoc = "Company registration document is required";
+      if (!directorIdDoc)  e.directorIdDoc          = "Director ID document is required";
+      if (!proofOfBankDoc) e.proofOfBankDoc         = "Proof of bank account is required";
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -53,16 +168,36 @@ export default function ApplyPage() {
     if (!validate()) return;
     setLoading(true);
     setApiError("");
+
     try {
-      const res = await fetch("/api/applications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error();
+      let res: Response;
+
+      if (isCompany) {
+        // Use multipart/form-data to include files
+        const fd = new FormData();
+        Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+        if (companyRegDoc)  fd.append("companyRegistrationDoc", companyRegDoc);
+        if (directorIdDoc)  fd.append("directorIdDoc", directorIdDoc);
+        if (proofOfBankDoc) fd.append("proofOfBankDoc", proofOfBankDoc);
+
+        res = await fetch("/api/applications", { method: "POST", body: fd });
+      } else {
+        res = await fetch("/api/applications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Unknown error");
+      }
       setSuccess(true);
-    } catch {
-      setApiError("Something went wrong. Please try again or contact us directly.");
+    } catch (err) {
+      setApiError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again or contact us directly."
+      );
     } finally {
       setLoading(false);
     }
@@ -85,7 +220,7 @@ export default function ApplyPage() {
           </div>
           <h1 className="font-display text-3xl font-black mb-4" style={{ color: "var(--text-primary)" }}>Application Received</h1>
           <p className="text-base leading-relaxed mb-8" style={{ color: "var(--text-secondary)" }}>
-            Thank you, <span style={{ color: "var(--text-primary)" }}>{form.ownerFirstName}</span>! We've received your application for{" "}
+            Thank you, <span style={{ color: "var(--text-primary)" }}>{form.ownerFirstName}</span>! We&apos;ve received your application for{" "}
             <span style={{ color: "var(--text-primary)" }}>{form.businessName}</span>. Our team will be in touch within 24 hours.
           </p>
           <div className="glass-card rounded-sm p-5 mb-8 text-left">
@@ -108,7 +243,6 @@ export default function ApplyPage() {
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
       <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none" style={{ backgroundColor: "var(--glow-primary)" }} />
 
-
       <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-mono tracking-wide mb-10 transition-colors hover-text-secondary"
           style={{ color: "var(--text-muted)" }}>
@@ -126,6 +260,40 @@ export default function ApplyPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* Applicant Type */}
+          <fieldset className="glass-card rounded-sm p-7">
+            <legend className="text-xs font-mono tracking-widest uppercase mb-4 block" style={{ color: "var(--text-muted)" }}>
+              Applicant Type
+            </legend>
+            <div className="grid grid-cols-2 gap-4">
+              {(["individual", "company"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    setForm((p) => ({ ...p, applicantType: type }));
+                    setErrors({});
+                  }}
+                  className="flex flex-col items-center justify-center gap-2 rounded-sm py-5 transition-all"
+                  style={{
+                    border: `1.5px solid ${form.applicantType === type ? "var(--crimson-500)" : "var(--border-default)"}`,
+                    background: form.applicantType === type ? "rgba(220,38,38,0.06)" : "var(--bg-elevated)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span className="text-sm font-semibold" style={{
+                    color: form.applicantType === type ? "var(--crimson-400)" : "var(--text-secondary)",
+                  }}>
+                    {type === "individual" ? "👤 Individual" : "🏢 Company"}
+                  </span>
+                  <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                    {type === "individual" ? "Personal / sole trader" : "Registered company"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
 
           {/* Business Info */}
           <fieldset className="glass-card rounded-sm p-7 space-y-5">
@@ -157,7 +325,9 @@ export default function ApplyPage() {
 
           {/* Owner Info */}
           <fieldset className="glass-card rounded-sm p-7 space-y-5">
-            <legend className="text-xs font-mono tracking-widest uppercase mb-4 block" style={{ color: "var(--text-muted)" }}>Owner Details</legend>
+            <legend className="text-xs font-mono tracking-widest uppercase mb-4 block" style={{ color: "var(--text-muted)" }}>
+              {isCompany ? "Director Details" : "Owner Details"}
+            </legend>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-mono tracking-wide uppercase mb-2" style={{ color: "var(--text-secondary)" }}>First Name *</label>
@@ -184,6 +354,44 @@ export default function ApplyPage() {
             </div>
           </fieldset>
 
+          {/* Company Documents — only shown for company applicants */}
+          {isCompany && (
+            <fieldset className="glass-card rounded-sm p-7 space-y-6">
+              <div>
+                <legend className="text-xs font-mono tracking-widest uppercase mb-1 block" style={{ color: "var(--text-muted)" }}>
+                  Company Documents
+                </legend>
+                <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+                  Please upload the following documents to verify your company.
+                </p>
+              </div>
+
+              <FileField
+                label="Company Registration Document"
+                hint="CIPC registration certificate or similar"
+                file={companyRegDoc}
+                onChange={(f) => { setCompanyRegDoc(f); setErrors((p) => ({ ...p, companyRegistrationDoc: undefined })); }}
+                error={errors.companyRegistrationDoc}
+              />
+
+              <FileField
+                label="Copy of ID of the Director"
+                hint="South African ID or passport of the company director"
+                file={directorIdDoc}
+                onChange={(f) => { setDirectorIdDoc(f); setErrors((p) => ({ ...p, directorIdDoc: undefined })); }}
+                error={errors.directorIdDoc}
+              />
+
+              <FileField
+                label="Proof of Bank Account"
+                hint="Bank-stamped letter or recent bank statement (not older than 3 months)"
+                file={proofOfBankDoc}
+                onChange={(f) => { setProofOfBankDoc(f); setErrors((p) => ({ ...p, proofOfBankDoc: undefined })); }}
+                error={errors.proofOfBankDoc}
+              />
+            </fieldset>
+          )}
+
           {/* Notes */}
           <fieldset className="glass-card rounded-sm p-7">
             <legend className="text-xs font-mono tracking-widest uppercase mb-4 block" style={{ color: "var(--text-muted)" }}>Anything Else? (Optional)</legend>
@@ -199,7 +407,7 @@ export default function ApplyPage() {
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-4 disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? <><Loader2 size={16} className="animate-spin" />Submitting...</> : <>Submit Application<ArrowRight size={16} /></>}
+            {loading ? <><Loader2 size={16} className="animate-spin" />Submitting…</> : <>Submit Application<ArrowRight size={16} /></>}
           </button>
 
           <p className="text-center text-xs font-mono" style={{ color: "var(--text-faint)" }}>

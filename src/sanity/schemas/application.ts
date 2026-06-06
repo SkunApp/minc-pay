@@ -1,5 +1,17 @@
 import { defineField, defineType } from "sanity";
 
+const docObject = (name: string, title: string) =>
+  defineField({
+    name,
+    title,
+    type: "object",
+    fields: [
+      defineField({ name: "url",          title: "URL",           type: "url" }),
+      defineField({ name: "originalName", title: "Original Name", type: "string" }),
+      defineField({ name: "assetId",      title: "Asset ID",      type: "string" }),
+    ],
+  });
+
 export const applicationSchema = defineType({
   name: "application",
   title: "Merchant Application",
@@ -35,6 +47,17 @@ export const applicationSchema = defineType({
       validation: (R) => R.required(),
     }),
     defineField({ name: "message",     title: "Additional Notes",  type: "text" }),
+    defineField({
+      name: "applicantType", title: "Applicant Type", type: "string",
+      options: { list: [
+        { title: "Individual", value: "individual" },
+        { title: "Company",    value: "company" },
+      ], layout: "radio" },
+      initialValue: "individual",
+    }),
+    docObject("companyRegistrationDoc", "Company Registration Document"),
+    docObject("directorIdDoc",          "Director ID Document"),
+    docObject("proofOfBankDoc",         "Proof of Bank Account"),
     defineField({
       name: "status", title: "Status", type: "string", initialValue: "pending",
       options: { list: [

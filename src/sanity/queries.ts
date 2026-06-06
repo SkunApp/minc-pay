@@ -10,7 +10,11 @@ export const ALL_APPLICATIONS_QUERY = `
     monthlyVolume,
     message,
     status,
-    submittedAt
+    submittedAt,
+    applicantType,
+    companyRegistrationDoc,
+    directorIdDoc,
+    proofOfBankDoc
   }
 `;
 
@@ -26,7 +30,11 @@ export const APPLICATION_BY_ID_QUERY = `
     monthlyVolume,
     message,
     status,
-    submittedAt
+    submittedAt,
+    applicantType,
+    companyRegistrationDoc,
+    directorIdDoc,
+    proofOfBankDoc
   }
 `;
 

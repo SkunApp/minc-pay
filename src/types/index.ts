@@ -1,3 +1,9 @@
+export interface ApplicationDocument {
+  url: string;
+  originalName: string;
+  assetId: string;
+}
+
 export interface Application {
   id: string;
   businessName: string;
@@ -10,6 +16,11 @@ export interface Application {
   message?: string;
   status: "pending" | "approved" | "rejected";
   submittedAt: string;
+  // Company applicant fields
+  applicantType?: "individual" | "company";
+  companyRegistrationDoc?: ApplicationDocument;
+  directorIdDoc?: ApplicationDocument;
+  proofOfBankDoc?: ApplicationDocument;
 }
 
 export interface ContactMessage {
