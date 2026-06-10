@@ -282,10 +282,23 @@ export default function ApplyPage() {
                     cursor: "pointer",
                   }}
                 >
+                  {type === "individual" ? (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="7" r="4" stroke={form.applicantType === "individual" ? "var(--crimson-400)" : "var(--text-muted)"} strokeWidth="1.75" strokeLinecap="round"/>
+                      <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke={form.applicantType === "individual" ? "var(--crimson-400)" : "var(--text-muted)"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="3" y="9" width="18" height="12" rx="1.5" stroke={form.applicantType === "company" ? "var(--crimson-400)" : "var(--text-muted)"} strokeWidth="1.75"/>
+                      <path d="M7 9V6.5A1.5 1.5 0 0 1 8.5 5h7A1.5 1.5 0 0 1 17 6.5V9" stroke={form.applicantType === "company" ? "var(--crimson-400)" : "var(--text-muted)"} strokeWidth="1.75" strokeLinecap="round"/>
+                      <rect x="9.5" y="13" width="5" height="4" rx="0.75" stroke={form.applicantType === "company" ? "var(--crimson-400)" : "var(--text-muted)"} strokeWidth="1.5"/>
+                      <path d="M3 13h18" stroke={form.applicantType === "company" ? "var(--crimson-400)" : "var(--text-muted)"} strokeWidth="1.75" strokeLinecap="round"/>
+                    </svg>
+                  )}
                   <span className="text-sm font-semibold" style={{
                     color: form.applicantType === type ? "var(--crimson-400)" : "var(--text-secondary)",
                   }}>
-                    {type === "individual" ? "👤 Individual" : "🏢 Company"}
+                    {type === "individual" ? "Individual" : "Company"}
                   </span>
                   <span className="text-xs" style={{ color: "var(--text-faint)" }}>
                     {type === "individual" ? "Personal / sole trader" : "Registered company"}
